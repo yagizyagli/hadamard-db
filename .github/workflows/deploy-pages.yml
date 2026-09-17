@@ -35,7 +35,7 @@ jobs:
       - name: Upload Dense Static Site Artifacts
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './docs'
+          path: '.'
 
       - name: Deploy Document Pages to GitHub Infrastructure
         id: deployment
