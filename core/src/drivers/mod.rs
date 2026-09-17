@@ -8,7 +8,7 @@ pub enum QuantumBackendProvider {
     IbmQuantum,
     AwsBraket,
     AzureQuantum,
-    GcpQuantumEngine, // Expanded for Google Cloud topology
+    GcpQuantumEngine,
     LocalSimulator,
 }
 
