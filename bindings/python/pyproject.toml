@@ -1,0 +1,34 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "hadamard-db"
+version = "0.1.0"
+description = "Enterprise-grade, ultra-lightweight quantum database query engine and hybrid storage framework."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Yağız Yağlı"}]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Topic :: Database :: Database Engines",
+    "Topic :: Scientific/Engineering :: Physics"
+]
+dependencies = []
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "hadamard._hadamard_core" # Places the compiled binary extension safely inside the python package namespace
+binding = "pyo3"
+strip = true # Strips debug symbols from the compiled binary to ensure absolute lightweight asset distribution
