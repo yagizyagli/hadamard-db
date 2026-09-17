@@ -1,0 +1,42 @@
+name: Hadamard-DB Live Pages Deployment
+
+on:
+  push:
+    branches: [ "main", "stable" ]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy-pages.yml'
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages securely
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment to avoid deployment race conditions across active clusters
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy-static-pages:
+    name: Build & Push Live Telemetry Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub Pages Static Infrastructure
+        uses: actions/configure-pages@v4
+
+      - name: Upload Dense Static Site Artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+
+      - name: Deploy Document Pages to GitHub Infrastructure
+        id: deployment
+        uses: actions/deploy-pages@v4
