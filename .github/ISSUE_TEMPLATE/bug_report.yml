@@ -1,0 +1,40 @@
+name: "🛑 Structural Bug Report"
+description: "File a highly technical error state report to assist core maintainers."
+title: "[BUG]: "
+labels: ["bug", "triage-required"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting this issue. Please provide precise technical system telemetry details so our hardware maintainers can isolate the execution failure swiftly.
+  - type: input
+    id: quantum-backend
+    attributes:
+      label: "Quantum Hardware / Simulator Target"
+      placeholder: "e.g., IBM Sycamore simulation, AWS Braket Rigetti Aspen-M-3, Local Simulator"
+    validations:
+      required: true
+  - type: textarea
+    id: error-description
+    attributes:
+      label: "Detailed Error Behavior Description"
+      placeholder: "Describe exactly what collapsed under active processing routines..."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Bare-Metal System Logs / Quantum State Dumps"
+      placeholder: "Paste explicit Tokio trace dumps, compilation failure panics, or OpenQASM vectors..."
+      render: shell
+    validations:
+      required: true
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: "Validation Checks"
+      options:
+        - label: "I have confirmed that this bug reproduces cleanly on the latest stable monorepo branch."
+          required: true
+        - label: "I have run `cargo clippy` and verified that my target execution bounds are not causing quantum register overflows."
+          required: true
