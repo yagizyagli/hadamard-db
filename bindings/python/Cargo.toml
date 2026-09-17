@@ -1,0 +1,17 @@
+[package]
+name = "hadamard-python-bindings"
+version = "0.1.0"
+edition = "2021"
+authors = ["Yağız Yağlı"]
+description = "Native Python extension module for the high-performance Hadamard Quantum Database Engine."
+license = "Apache-2.0"
+
+[lib]
+name = "_hadamard_core"
+crate-type = ["cdylib"] # Enforces the compilation into a native OS shared library (.so/.pyd)
+
+[dependencies]
+pyo3 = { version = "0.21", features = ["extension-module", "abi3-py37"] } # Enables universal Python 3.7+ wheel compatibility
+pyo3-asyncio = { version = "0.21", features = ["tokio-runtime"] }
+hadamard-core = { path = "../../core" } # Direct zero-copy relative path link to our main engine core
+tokio = { version = "1.38", features = ["full"] }
