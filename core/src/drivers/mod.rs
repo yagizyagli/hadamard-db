@@ -1,4 +1,6 @@
 pub mod ibm;
+pub mod aws;
+pub mod azure;
 
 #[derive(Debug, Clone)]
 pub enum QuantumBackendProvider {
@@ -12,6 +14,6 @@ pub enum QuantumBackendProvider {
 pub struct DriverConfig {
     pub provider: QuantumBackendProvider,
     pub api_token: String,
-    pub target_device: String, // e.g., "ibm_brisbane" or "simulator"
+    pub target_device: String,
     pub timeout_seconds: u64,
 }
