@@ -1,5 +1,5 @@
 -- PostgreSQL Enterprise Extension Definition for Hadamard-DB Link
--- Copyright 2026 Hadamard-DB Maintainers. Apache-2.0 License.
+-- Copyright 2026 Yağız Yağlı. Apache-2.0 License.
 
 CREATE OR REPLACE FUNCTION pg_hadamard_sync_table(
     collection_name TEXT,
