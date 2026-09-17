@@ -1,4 +1,4 @@
-# 🌌 Hadamard-DB (qvolt-core)
+# 🌌 Hadamard-DB (hadamard-db)
 
 
 ## 🚀 Overview
