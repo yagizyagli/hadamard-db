@@ -1,12 +1,14 @@
 pub mod ibm;
 pub mod aws;
 pub mod azure;
+pub mod gcp; 
 
 #[derive(Debug, Clone)]
 pub enum QuantumBackendProvider {
     IbmQuantum,
     AwsBraket,
     AzureQuantum,
+    GcpQuantumEngine, // Expanded for Google Cloud topology
     LocalSimulator,
 }
 
