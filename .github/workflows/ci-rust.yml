@@ -1,0 +1,73 @@
+name: Hadamard-DB Core Integration CI
+
+on:
+  push:
+    branches: [ "main", "stable" ]
+    paths:
+      - 'core/**'
+      - 'tests/**'
+      - '.github/workflows/ci-rust.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'core/**'
+      - 'tests/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  static-analysis:
+    name: Code Quality & Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Hardened Rust Stable Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Inject High-Performance Cargo Compilation Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "core -> target"
+
+      - name: Enforce Formal Code Formatting Standards (rustfmt)
+        run: cargo fmt --manifest-path core/Cargo.toml -- --check
+
+      - name: Run Enterprise Static Analysis Linting Suite (clippy)
+        run: cargo clippy --manifest-path core/Cargo.toml -- -D warnings
+
+  cross-platform-testing:
+    name: Cross-Platform Matrix Test Execution
+    needs: static-analysis
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Repository Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Target Rust Stable Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Inject High-Performance Cargo Compilation Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "core -> target"
+
+      - name: Ingest Pre-Allocated Test Environment Features
+        run: |
+          cd core
+          cargo fetch
+
+      - name: Execute Monolithic Unit & Core Integration Tests
+        run: cargo test --manifest-path core/Cargo.toml --verbose --workspace
+
+      - name: Execute Sub-Linear Hardware Performance Benchmarks
+        run: cargo test --manifest-path core/Cargo.toml --test benchmarks --verbose -- --nocapture
