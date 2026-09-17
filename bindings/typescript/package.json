@@ -1,0 +1,42 @@
+{
+  "name": "hadamard-db",
+  "version": "0.1.0",
+  "description": "Enterprise-grade, ultra-lightweight quantum database query engine and hybrid storage framework written in Rust.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && neon build --release",
+    "build-debug": "tsc && neon build",
+    "cross-compile": "neon dist",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  },
+  "author": "Yağız Yağlı",
+  "license": "Apache-2.0",
+  "keywords": [
+    "quantum",
+    "database",
+    "grover",
+    "rust",
+    "neon",
+    "nodejs",
+    "qram",
+    "high-performance"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "neon-cli": "^0.10.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1"
+  },
+  "bugs": {
+    "url": "https://github.com"
+  },
+  "homepage": "https://github.com"
+}
