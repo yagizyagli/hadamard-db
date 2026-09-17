@@ -1,0 +1,75 @@
+name: Hadamard-DB Automated Multi-Registry Release Production
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  publish-crates-io:
+    name: Publish Core Engine to Crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Stable Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify Package & Publish to Crates.io
+        run: |
+          cd core
+          cargo login ${{ secrets.CRATES_IO_TOKEN }}
+          cargo publish --no-verify
+
+  publish-pypi:
+    name: Build & Publish Universal Wheels to PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Stable Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set Up Python 3.11 Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Maturin Production Compiler
+        run: pip install maturin
+
+      - name: Build and Publish Extension to PyPI
+        run: |
+          cd bindings/python
+          maturin publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
+
+  publish-npm:
+    name: Build & Publish Typescript Addon to NPM Registry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Stable Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set Up Node.js 20 Runtime Build Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://npmjs.org"
+
+      - name: Install Production Dependencies & Compile Native Addon
+        run: |
+          cd bindings/typescript
+          npm install
+          npm run build
+
+      - name: Push Package to NPM Distribution Clusters
+        run: |
+          cd bindings/typescript
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
