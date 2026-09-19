@@ -64,12 +64,20 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [18, 20, 22]
-    steps:
+       steps:
       - name: Checkout Repository Source Code
         uses: actions/checkout@v4
 
-      - name: Install Stable Rust Toolchain
+      - name: Install Stable Rust Toolchain Natively
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Force Rust and Cargo to Global Environment Paths
+        run: |
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          rustc --version
+          cargo --version
 
       - name: Set Up Node.js ${{ matrix.node-version }} Runtime
         uses: actions/setup-node@v4
