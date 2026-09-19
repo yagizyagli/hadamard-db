@@ -55,10 +55,10 @@ jobs:
           cd bindings/python
           maturin build --release --manifest-path ../../core/Cargo.toml
 
-      - name: Inject Native Extension Wheel Natively From Workspace Core
+      - name: Inject Native Extension Wheel Utilizing Safe Glob Find Loops
         run: |
-          # Forcefully install the workspace-compiled wheel utilizing the native find shell loop
-          pip install target/wheels/hadamard_core*.whl || pip install target/wheels/*.whl
+          # Use advanced linux find mechanics to absolute-locate and pipe the wheel directly into pip, ignoring shell glob limits
+          find target/wheels/ -name "*.whl" | xargs pip install || find . -name "*.whl" | grep "hadamard" | xargs pip install
 
       - name: Execute End-to-End In-Database QML & Grover Python Tests
         run: |
