@@ -1,5 +1,6 @@
-// Import the low-level neon binary bridge compilation module
-const addon = require('./index.node');
+// Dynamically bridge node compiled extensions matching the package scope definitions
+const addon = require('./build/Release/index.node') || require('./index.node');
+
 
 export interface QuantumDataRecord {
     [key: string]: string;
