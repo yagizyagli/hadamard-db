@@ -1,23 +1,17 @@
 import sys
 import os
-import site
 
-# Absolute path resolution mapping the exact deeply nested monorepo structure
+# 1. ALWAYS RESOLVE PATHS FIRST (Moved to the absolute top of the file)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
-# Dynamically locate and inject the global/user site-packages path to catch pip wheel installations
-for site_path in site.getsitepackages():
-    sys.path.insert(0, site_path)
-if site.USER_SITE:
-    sys.path.insert(0, site.USER_SITE)
-
-# Inject all possible Maturin and Cargo build workspace release locations into the very front of search vectors
+# 2. INJECT ALL TARGET BINARY VECTORS BEFORE ANY COMPILED IMPORT IS EXECUTED
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release/maturin"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "core/target/release"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "bindings/python"))
 
+# 3. NOW EXECUTE THE IMPORTS (Safe from ModuleNotFoundError loops)
 import asyncio
 import time
 from typing import List, Dict
