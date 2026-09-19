@@ -50,11 +50,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install maturin pytest
 
-      - name: Compile and Install Native Python Extension (Maturin Cross-Path)
+      - name: Build Universal Python Extension Wheel (Maturin Build)
         run: |
           cd bindings/python
-          # Explicitly point Maturin to our core engine configuration matrix to avoid context drops
-          maturin develop --manifest-path ../../core/Cargo.toml
+          # Build a localized enterprise production wheel bypassing strict virtualenv requirements
+          maturin build --release --manifest-path ../../core/Cargo.toml
+
+      - name: Inject Native Extension Wheel Into System Packages
+        run: |
+          # Dynamically locate and force-install the generated binary wheel straight into the python cache
+          pip install --no-index --find-links=target/wheels hadamard-db || pip install target/wheels/*.whl
 
       - name: Execute End-to-End In-Database QML & Grover Python Tests
         run: |
@@ -96,7 +101,6 @@ jobs:
       - name: Execute Native Neon-CLI Build with Context Path Abstraction
         run: |
           cd bindings/typescript
-          # Dynamically forge a symbolic link or compile directly by lifting cargo variables into scope
           npx neon build --release --manifest-path ../../core/Cargo.toml || (mkdir -p native && touch native/index.node && npx tsc)
 
       - name: Validate Type Definition Mapping & Runtime Allocation
