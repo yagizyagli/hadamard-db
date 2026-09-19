@@ -1,19 +1,22 @@
 import sys
 import os
 
-# Absolute cross-workspace path lookup resolution logic inside the core client bridge
+# 1. ALWAYS RESOLVE WORKSPACE PATHS FIRST (Before any library loading occurs)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../../"))
 
-# Forcefully link all native build artifacts directly into the sub-module context arrays
+# 2. FORCEFULLY INJECT ALL CORE TARGET RELEASES INTO THE ROOT SEARCH VECTORS
+sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release/maturin"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "core/target/release"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "bindings/python"))
 
 import asyncio
 from typing import List, Dict, Any
-import _hadamard_core
-from _hadamard_core import PyHadamardEngine
+
+# 3. FIXED: Synchronize import naming directly with the Cargo.toml compiled library specifications
+import hadamard_core
+from hadamard_core import PyHadamardEngine
 
 class HadamardClient:
     """
@@ -40,7 +43,6 @@ class HadamardClient:
         if not collection or not records:
             raise ValueError("Collection name and dataset payload cannot be empty.")
         
-        # Crosses the C-ABI border asynchronously without blocking the Python event loop
         total_shards: int = await self._engine.load_dataset(collection, records)
         return total_shards
 
