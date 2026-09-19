@@ -1,106 +1,112 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use atomic_counter::{AtomicCounter, ConsistentCounter};
+use std::time::{Duration, Instant};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum StorageError {
-    #[error("Shard allocation failed due to memory exhaustion.")]
-    MemoryExhaustion,
-    #[error("The requested key partition '{0}' does not exist in QRAM index.")]
-    PartitionNotFound(String),
-    #[error("Data corruption detected during quantum state preparation: {0}")]
-    Corruption(String),
+pub enum CacheError {
+    #[error("Cache entry has expired based on TTL configurations.")]
+    EntryExpired,
+    #[error("The specific collection block allocation failed.")]
+    AllocationFailure,
 }
 
 #[derive(Debug, Clone)]
-pub struct QuantumShard {
-    pub shard_id: u64,
-    pub address_qubit_mapping: HashMap<String, usize>,
-    pub dense_buffer: Vec<u8>,
+pub struct CacheValue {
+    pub payload: Vec<u8>,
+    pub created_at: Instant,
+    pub ttl: Duration,
 }
 
-pub struct HybridQramStorage {
-    pub shard_capacity: usize,
-    pub active_shards: Arc<RwLock<HashMap<String, Vec<QuantumShard>>>>,
-    pub global_transaction_counter: ConsistentCounter,
+impl CacheValue {
+    pub fn is_expired(&self) -> bool {
+        self.created_at.elapsed() > self.ttl
+    }
 }
 
-impl HybridQramStorage {
-    pub fn new(shard_capacity: usize) -> Self {
+pub struct ZeroCopyCache {
+    pub max_capacity_bytes: usize,
+    pub current_size_bytes: Arc<RwLock<usize>>,
+    pub registry: Arc<RwLock<BTreeMap<String, CacheValue>>>,
+}
+
+impl ZeroCopyCache {
+    pub fn new(max_capacity_bytes: usize) -> Self {
         Self {
-            shard_capacity,
-            active_shards: Arc::new(RwLock::new(HashMap::new())),
-            global_transaction_counter: ConsistentCounter::new(0),
+            max_capacity_bytes,
+            current_size_bytes: Arc::new(RwLock::new(0)),
+            registry: Arc::new(RwLock::new(BTreeMap::new())),
         }
     }
 
-    pub async fn ingest_and_shard(
-        &self,
-        collection_name: &str,
-        records: Vec<HashMap<String, String>>,
-    ) -> Result<usize, StorageError> {
-        let mut shard_map = self.active_shards.write().await;
-        let collection_entry = shard_map.entry(collection_name.to_string()).or_insert_with(Vec::new);
+    pub async fn put(&self, key: String, payload: Vec<u8>, ttl_secs: u64) -> Result<(), CacheError> {
+        let payload_size = payload.len();
+        let mut current_size = self.current_size_bytes.write().await;
+        
+        if *current_size + payload_size > self.max_capacity_bytes {
+            self.evict_expired_entries().await;
+            if *current_size + payload_size > self.max_capacity_bytes {
+                return Err(CacheError::AllocationFailure);
+            }
+        }
 
-        let mut current_shard_id = self.global_transaction_counter.inc() as u64;
-        let mut current_buffer = Vec::new();
-        let mut current_mapping = HashMap::new();
-        let mut qubit_cursor = 0;
-        let mut total_shards_created = 0;
+        let mut write_registry = self.registry.write().await;
+        
+        let new_value = CacheValue {
+            payload,
+            created_at: Instant::now(),
+            ttl: Duration::from_secs(ttl_secs),
+        };
 
-        for record in records {
-            let mut serialized_record = Vec::new();
-            for (key, val) in &record {
-                serialized_record.extend_from_slice(key.as_bytes());
-                serialized_record.push(0x1F); 
-                serialized_record.extend_from_slice(val.as_bytes());
-                serialized_record.push(0x1E); 
-                
-                if !current_mapping.contains_key(key) {
-                    current_mapping.insert(key.clone(), qubit_cursor);
-                    qubit_cursor += 1;
+        if let Some(old_val) = write_registry.insert(key, new_value) {
+            *current_size = (*current_size + payload_size).saturating_sub(old_val.payload.len());
+        } else {
+            *current_size += payload_size;
+        }
+
+        Ok(())
+    }
+
+    pub async fn get(&self, key: &str) -> Result<Vec<u8>, CacheError> {
+        let read_registry = self.registry.read().await;
+        
+        match read_registry.get(key) {
+            Some(value) => {
+                if value.is_expired() {
+                    drop(read_registry);
+                    self.remove_entry(key).await;
+                    return Err(CacheError::EntryExpired);
                 }
+                Ok(value.payload.clone())
             }
-
-            current_buffer.extend(serialized_record);
-
-            if current_buffer.len() >= self.shard_capacity {
-                collection_entry.push(QuantumShard {
-                    shard_id: current_shard_id,
-                    address_qubit_mapping: current_mapping.clone(),
-                    dense_buffer: current_buffer.clone(),
-                });
-                
-                total_shards_created += 1;
-                current_shard_id = self.global_transaction_counter.inc() as u64;
-                current_buffer.clear();
-                current_mapping.clear();
-                qubit_cursor = 0;
-            }
+            None => Err(CacheError::EntryExpired),
         }
-
-        if !current_buffer.is_empty() {
-            collection_entry.push(QuantumShard {
-                shard_id: current_shard_id,
-                address_qubit_mapping: current_mapping,
-                dense_buffer: current_buffer,
-            });
-            total_shards_created += 1;
-        }
-
-        Ok(total_shards_created)
     }
 
-    pub async fn fetch_shard_buffers(
-        &self,
-        collection_name: &str,
-    ) -> Result<Vec<QuantumShard>, StorageError> {
-        let shard_map = self.active_shards.read().await;
-        match shard_map.get(collection_name) {
-            Some(shards) => Ok(shards.clone()),
-            None => Err(StorageError::PartitionNotFound(collection_name.to_string())),
+    pub async fn evict_expired_entries(&self) {
+        let mut write_registry = self.registry.write().await;
+        let mut current_size = self.current_size_bytes.write().await;
+        
+        let mut keys_to_remove = Vec::new();
+        for (key, val) in write_registry.iter() {
+            if val.is_expired() {
+                keys_to_remove.push(key.clone());
+            }
+        }
+
+        for key in keys_to_remove {
+            if let Some(removed) = write_registry.remove(&key) {
+                *current_size = current_size.saturating_sub(removed.payload.len());
+            }
+        }
+    }
+
+    pub async fn remove_entry(&self, key: &str) {
+        let mut write_registry = self.registry.write().await;
+        let mut current_size = self.current_size_bytes.write().await;
+        if let Some(removed) = write_registry.remove(key) {
+            *current_size = current_size.saturating_sub(removed.payload.len());
         }
     }
 }
