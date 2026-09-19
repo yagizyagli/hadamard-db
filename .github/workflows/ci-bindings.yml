@@ -29,7 +29,7 @@ jobs:
       - name: Checkout Repository Source Code
         uses: actions/checkout@v4
 
-      - name: Install Stable Rust Toolchain
+      - name: Install Stable Rust Toolchain Natively
         uses: dtolnay/rust-toolchain@stable
 
       - name: Set Up Python ${{ matrix.python-version }} Environment
@@ -64,7 +64,7 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [18, 20, 22]
-       steps:
+    steps:
       - name: Checkout Repository Source Code
         uses: actions/checkout@v4
 
