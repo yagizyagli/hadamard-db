@@ -138,6 +138,7 @@ We heavily welcome senior systems architects and quantum researchers to extend t
 ## 👨‍💻 Author & Developer
 
 * **Yağız Yağlı**:[@yagizyagli](https://github.com/yagizyagli)
+* **Live Demo**:[@hadamard-db](https://yagizyagli.github.io/hadamard-db/)
 
 ---
 
