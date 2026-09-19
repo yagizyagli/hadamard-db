@@ -15,6 +15,7 @@ tokio = { version = "1.38", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
+atomic_counter = "1.0.1" # Added to resolve atomic compiler synchronization drops
 pyo3 = { version = "0.21", features = ["extension-module"], optional = true }
 
 [profile.release]
