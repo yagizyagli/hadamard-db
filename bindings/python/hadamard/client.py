@@ -5,25 +5,22 @@ import os
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../../"))
 
-# 2. FORCEFULLY INJECT ALL CORE TARGET RELEASES INTO THE ROOT SEARCH VECTORS
+# 2. FORCEFULLY INJECT ALL CORE TARGET RELEASES TO THE ABSOLUTE FRONT OF SEARCH PATHS
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release/maturin"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "core/target/release"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "bindings/python"))
 
+# 3. CRITICAL CRATE PURGE: Evict and purge the stale broken cache allocation out of Python's memory registers
+if "hadamard_core" in sys.modules:
+    del sys.modules["hadamard_core"]
+
 import asyncio
 from typing import List, Dict, Any
-import hadamard_core
 
-# 3. FIXED: Robust fall-back mapping to safely capture the exact exported struct from the Rust core binary layer
-try:
-    from hadamard_core import PyHadamardEngine as NativeEngine
-except ImportError:
-    try:
-        from hadamard_core import HadamardEngine as NativeEngine
-    except ImportError:
-        # Fallback to structural module attribute lookup if direct named import drops context
-        NativeEngine = getattr(hadamard_core, "PyHadamardEngine", None) or getattr(hadamard_core, "HadamardEngine")
+# 4. FORCE RE-IMPORT: Directly bind onto the fresh workspace-compiled dynamic library target
+import hadamard_core
+from hadamard_core import HadamardEngine as NativeEngine
 
 class HadamardClient:
     """
