@@ -55,10 +55,10 @@ jobs:
           cd bindings/python
           maturin build --release --manifest-path ../../core/Cargo.toml
 
-      - name: Inject Native Extension Wheel From Precision Absolute Paths
+      - name: Inject Native Extension Wheel Natively From Workspace Core
         run: |
-          # Forcefully pull the generated wheels directly out of the localized build sub-directories
-          pip install bindings/python/target/wheels/*.whl
+          # Forcefully install the workspace-compiled wheel utilizing the native find shell loop
+          pip install target/wheels/hadamard_core*.whl || pip install target/wheels/*.whl
 
       - name: Execute End-to-End In-Database QML & Grover Python Tests
         run: |
