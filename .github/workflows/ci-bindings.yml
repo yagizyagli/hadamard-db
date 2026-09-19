@@ -68,17 +68,20 @@ jobs:
       - name: Checkout Repository Source Code
         uses: actions/checkout@v4
 
-      - name: Set Up Node.js ${{ matrix.node-version }} Runtime First
+      - name: Set Up Node.js ${{ matrix.node-version }} Runtime
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
           cache-dependency-path: bindings/typescript/package.json
 
-      - name: Install Hardened Rust Toolchain Natively
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
+      - name: Inject Linux Native Rust and Cargo via APT Package Manager
+        run: |
+          # Forcefully embed Rust/Cargo into the absolute system core (/usr/bin/cargo)
+          sudo apt-get update
+          sudo apt-get install -y rustc cargo
+          rustc --version
+          cargo --version
 
       - name: Inject High-Performance Cargo Compilation Cache
         uses: swatinem/rust-cache@v2
@@ -90,10 +93,8 @@ jobs:
           cd bindings/typescript
           npm install
 
-      - name: Execute Hardened Neon Build with Explicit Cargo Path Enforcement
+      - name: Execute Native Neon-CLI Build and TypeScript Compilation
         run: |
-          # Forcefully inject the absolute cargo binary path directly before neon compilation sequence
-          export PATH="$HOME/.cargo/bin:$PATH"
           cd bindings/typescript
           npm run build
 
