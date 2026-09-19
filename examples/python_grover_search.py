@@ -1,7 +1,14 @@
+import sys
+import os
+
+# Explicitly inject multi-language binding source paths into python runtime search vectors
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../bindings/python')))
+
 import asyncio
 import time
 from typing import List, Dict
 from hadamard.client import HadamardClient
+
 
 def generate_mock_financial_ledger(total_records: int) -> List[Dict[str, str]]:
     """
