@@ -25,8 +25,6 @@ impl CacheValue {
     }
 }
 
-/// Ultra-lightweight, zero-copy memory cache layer for Hadamard-DB.
-/// Acts as the high-speed ingest buffer before data partitions are frozen into QRAM shards.
 pub struct ZeroCopyCache {
     pub max_capacity_bytes: usize,
     pub current_size_bytes: Arc<RwLock<usize>>,
@@ -37,24 +35,25 @@ impl ZeroCopyCache {
     pub fn new(max_capacity_bytes: usize) -> Self {
         Self {
             max_capacity_bytes,
-            current_size_bytes: Arc.new(RwLock::new(0)),
-            registry: Arc.new(RwLock::new(BTreeMap::new())),
+            current_size_bytes: Arc::new(RwLock::new(0)),
+            registry: Arc::new(RwLock::new(BTreeMap::new())),
         }
     }
 
-    /// Inserts a binary records block straight into the volatile BTreeMap cache matrix.
-    /// Thread-safe and designed for low contention under massive parallel streaming pipelines.
     pub async fn put(&self, key: String, payload: Vec<u8>, ttl_secs: u64) -> Result<(), CacheError> {
         let payload_size = payload.len();
-        let mut current_size = self.current_size_bytes.write().await;
         
-        // Enforce hard memory protection boundaries to prevent host OS thrashing
-        if *current_size + payload_size > self.max_capacity_bytes {
-            // Evict expired entries proactively to clear space
-            self.evict_expired_entries().await;
+        {
+            let current_size = self.current_size_bytes.read().await;
             if *current_size + payload_size > self.max_capacity_bytes {
-                return Err(CacheError::AllocationFailure);
+                drop(current_size);
+                self.evict_expired_entries().await;
             }
+        }
+
+        let mut current_size = self.current_size_bytes.write().await;
+        if *current_size + payload_size > self.max_capacity_bytes {
+            return Err(CacheError::AllocationFailure);
         }
 
         let mut write_registry = self.registry.write().await;
@@ -74,14 +73,12 @@ impl ZeroCopyCache {
         Ok(())
     }
 
-    /// Fetches a read-only payload pointer view directly from the cached partition.
     pub async fn get(&self, key: &str) -> Result<Vec<u8>, CacheError> {
         let read_registry = self.registry.read().await;
         
         match read_registry.get(key) {
             Some(value) => {
                 if value.is_expired() {
-                    // We drop the read lock before performing mutation to avoid structural deadlocks
                     drop(read_registry);
                     self.remove_entry(key).await;
                     return Err(CacheError::EntryExpired);
@@ -92,8 +89,7 @@ impl ZeroCopyCache {
         }
     }
 
-    /// Flushes out stale entries from the cache layout to keep the active footprint microscopic.
-    pub async fn evict_expired_entries(&self) -> {
+    pub async fn evict_expired_entries(&self) {
         let mut write_registry = self.registry.write().await;
         let mut current_size = self.current_size_bytes.write().await;
         
@@ -111,7 +107,7 @@ impl ZeroCopyCache {
         }
     }
 
-    async fn remove_entry(&self, key: &str) {
+    pub async fn remove_entry(&self, key: &str) {
         let mut write_registry = self.registry.write().await;
         let mut current_size = self.current_size_bytes.write().await;
         if let Some(removed) = write_registry.remove(key) {
