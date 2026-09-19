@@ -1,14 +1,15 @@
 import sys
 import os
 
-# Absolute path resolution logic to lock target build vectors directly
+# Resolve the absolute workspace root correctly from the /examples subdirectory
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+WORKSPACE_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
-# Inject python package layer and compiled bare-metal Rust target directories
-sys.path.insert(0, os.path.join(BASE_DIR, "bindings/python"))
-sys.path.insert(0, os.path.join(BASE_DIR, "target/release"))
-sys.path.insert(0, os.path.join(BASE_DIR, "core/target/release"))
+# Inject the precise Maturin and Cargo build workspace release targets into python search paths
+sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release/maturin"))
+sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release"))
+sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "core/target/release"))
+sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "bindings/python"))
 
 import asyncio
 import time
@@ -51,10 +52,7 @@ async def run_enterprise_quantum_pipeline():
     """
     print("\n=== HADAMARD-DB ENTERPRISE TELEMETRY TESTING ===")
     
-    # Initialize the high-density client with 2MB shard size configurations
     client = HadamardClient(shard_capacity=2097152, max_qubits=29)
-    
-    # Scale dataset to 50,000 corporate ledger lines to test structural QRAM sharding throughput safely in CI
     raw_records = generate_mock_financial_ledger(total_records=50000)
     
     print("\n[Step 1] Ingesting dataset into Hybrid QRAM storage clusters...")
@@ -66,7 +64,6 @@ async def run_enterprise_quantum_pipeline():
     )
     
     print(f"[+] Ingestion Success: Generated {total_shards} persistent memory shards in {time.perf_counter() - ingest_start:.4f} seconds.")
-    
     del raw_records 
     
     target_query = "SELECT * FROM global_financial_ledger WHERE transaction_status = 'FRAUD_SUSPECT'"
