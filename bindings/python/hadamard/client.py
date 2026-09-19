@@ -1,8 +1,19 @@
+import sys
+import os
+
+# Absolute cross-workspace path lookup resolution logic inside the core client bridge
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+WORKSPACE_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../../"))
+
+# Forcefully link all native build artifacts directly into the sub-module context arrays
+sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release"))
+sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "core/target/release"))
+sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "bindings/python"))
+
 import asyncio
 from typing import List, Dict, Any
 import _hadamard_core
 from _hadamard_core import PyHadamardEngine
-
 
 class HadamardClient:
     """
