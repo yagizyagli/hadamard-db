@@ -63,28 +63,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18, 20, 22]
+        node-version: ["18", "20", "22"]
     steps:
       - name: Checkout Repository Source Code
         uses: actions/checkout@v4
 
-      - name: Install Stable Rust Toolchain Natively
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-
-      - name: Force Rust and Cargo to Global Environment Paths
-        run: |
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          rustc --version
-          cargo --version
-
-      - name: Set Up Node.js ${{ matrix.node-version }} Runtime
+      - name: Set Up Node.js ${{ matrix.node-version }} Runtime First
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
           cache-dependency-path: bindings/typescript/package.json
+
+      - name: Install Hardened Rust Toolchain Natively
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
 
       - name: Inject High-Performance Cargo Compilation Cache
         uses: swatinem/rust-cache@v2
@@ -96,8 +90,10 @@ jobs:
           cd bindings/typescript
           npm install
 
-      - name: Execute Native Neon-CLI Build and TypeScript Compilation
+      - name: Execute Hardened Neon Build with Explicit Cargo Path Enforcement
         run: |
+          # Forcefully inject the absolute cargo binary path directly before neon compilation sequence
+          export PATH="$HOME/.cargo/bin:$PATH"
           cd bindings/typescript
           npm run build
 
