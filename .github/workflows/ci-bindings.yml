@@ -55,18 +55,10 @@ jobs:
           cd bindings/python
           maturin build --release --manifest-path ../../core/Cargo.toml
 
-      - name: Inject Native Extension Wheel Natively From Workspace Core
+      - name: Inject Native Extension Wheel Utilizing Safe Glob Find Loops
         run: |
-          pip install target/wheels/hadamard_core*.whl || pip install target/wheels/*.whl
-
-      - name: Force Link Shared Native Binary Libraries directly into Package Context
-        run: |
-          # Locate the workspace-compiled shared object library and link it natively to prevent context drops
-          mkdir -p bindings/python/hadamard
-          find target/release/ -name "libhadamard_core.so" -exec cp {} bindings/python/_hadamard_core.so \; || true
-          find target/release/ -name "libhadamard_core.so" -exec cp {} bindings/python/hadamard/_hadamard_core.so \; || true
-          find target/release/ -name "*hadamard*.so" -exec cp {} bindings/python/ \; || true
-          find target/release/ -name "*hadamard*.so" -exec cp {} bindings/python/hadamard/ \; || true
+          # Use advanced linux find mechanics to absolute-locate and pipe the wheel directly into pip, ignoring shell glob limits
+          find target/wheels/ -name "*.whl" | xargs pip install || find . -name "*.whl" | grep "hadamard" | xargs pip install
 
       - name: Execute End-to-End In-Database QML & Grover Python Tests
         run: |
