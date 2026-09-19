@@ -1,7 +1,7 @@
 import sys
 import os
 
-# 1. ALWAYS RESOLVE WORKSPACE PATHS FIRST (Before any library loading occurs)
+# 1. ALWAYS RESOLVE WORKSPACE PATHS FIRST
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../../"))
 
@@ -13,10 +13,17 @@ sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "bindings/python"))
 
 import asyncio
 from typing import List, Dict, Any
-
-# 3. FIXED: Synchronize import naming directly with the Cargo.toml compiled library specifications
 import hadamard_core
-from hadamard_core import PyHadamardEngine
+
+# 3. FIXED: Robust fall-back mapping to safely capture the exact exported struct from the Rust core binary layer
+try:
+    from hadamard_core import PyHadamardEngine as NativeEngine
+except ImportError:
+    try:
+        from hadamard_core import HadamardEngine as NativeEngine
+    except ImportError:
+        # Fallback to structural module attribute lookup if direct named import drops context
+        NativeEngine = getattr(hadamard_core, "PyHadamardEngine", None) or getattr(hadamard_core, "HadamardEngine")
 
 class HadamardClient:
     """
@@ -30,7 +37,7 @@ class HadamardClient:
         :param shard_capacity: Max bytes allocated per volatile QRAM shard. Default 1MB.
         :param max_qubits: Maximum width of the destination quantum processor register.
         """
-        self._engine = PyHadamardEngine(shard_capacity, max_qubits)
+        self._engine = NativeEngine(shard_capacity, max_qubits)
 
     async def insert_bulk(self, collection: str, records: List[Dict[str, str]]) -> int:
         """
@@ -43,6 +50,7 @@ class HadamardClient:
         if not collection or not records:
             raise ValueError("Collection name and dataset payload cannot be empty.")
         
+        # Crosses the C-ABI border asynchronously without blocking the Python event loop
         total_shards: int = await self._engine.load_dataset(collection, records)
         return total_shards
 
