@@ -1,11 +1,18 @@
 import sys
 import os
+import site
 
-# Resolve the absolute workspace root correctly from the /examples subdirectory
+# Absolute path resolution mapping the exact deeply nested monorepo structure
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
-# Inject the precise Maturin and Cargo build workspace release targets into python search paths
+# Dynamically locate and inject the global/user site-packages path to catch pip wheel installations
+for site_path in site.getsitepackages():
+    sys.path.insert(0, site_path)
+if site.USER_SITE:
+    sys.path.insert(0, site.USER_SITE)
+
+# Inject all possible Maturin and Cargo build workspace release locations into the very front of search vectors
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release/maturin"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "target/release"))
 sys.path.insert(0, os.path.join(WORKSPACE_ROOT, "core/target/release"))
