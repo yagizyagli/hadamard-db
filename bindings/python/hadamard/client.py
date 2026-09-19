@@ -1,6 +1,8 @@
 import asyncio
 from typing import List, Dict, Any
-from ._hadamard_core import PyHadamardEngine
+import _hadamard_core
+from _hadamard_core import PyHadamardEngine
+
 
 class HadamardClient:
     """
