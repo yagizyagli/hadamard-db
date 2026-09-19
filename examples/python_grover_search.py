@@ -1,12 +1,14 @@
 import sys
 import os
 
-# Base directory absolute resolution logic
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# Absolute path resolution logic to lock target build vectors directly
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
-# Explicitly inject all multi-language compiled bindings and workspace release target targets
-sys.path.insert(0, os.path.join(BASE_DIR, 'bindings/python'))
-sys.path.insert(0, os.path.join(BASE_DIR, 'target/release'))
+# Inject python package layer and compiled bare-metal Rust target directories
+sys.path.insert(0, os.path.join(BASE_DIR, "bindings/python"))
+sys.path.insert(0, os.path.join(BASE_DIR, "target/release"))
+sys.path.insert(0, os.path.join(BASE_DIR, "core/target/release"))
 
 import asyncio
 import time
@@ -63,8 +65,7 @@ async def run_enterprise_quantum_pipeline():
         records=raw_records
     )
     
-    ingest_duration = time.perf_counter() - ingest_start
-    print(f"[+] Ingestion Success: Generated {total_shards} persistent memory shards in {ingest_duration:.4f} seconds.")
+    print(f"[+] Ingestion Success: Generated {total_shards} persistent memory shards in {time.perf_counter() - ingest_start:.4f} seconds.")
     
     del raw_records 
     
@@ -73,8 +74,7 @@ async def run_enterprise_quantum_pipeline():
     
     query_start = time.perf_counter()
     results = await client.execute_quantum_query(target_query)
-    query_duration = time.perf_counter() - query_start
-    print(f"[+] Quantum Query Concluded in {query_duration:.6f} seconds.")
+    print(f"[+] Quantum Query Concluded in {time.perf_counter() - query_start:.6f} seconds.")
     
     print(f"\n[Step 3] Output Matrix Validation (Total records caught: {len(results)}):")
     for index, record in enumerate(results):
